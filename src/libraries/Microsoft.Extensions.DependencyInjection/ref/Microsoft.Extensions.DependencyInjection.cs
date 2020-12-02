@@ -4,6 +4,8 @@
 // Changes to this file must follow the https://aka.ms/api-review process.
 // ------------------------------------------------------------------------------
 
+using System;
+
 namespace Microsoft.Extensions.DependencyInjection
 {
     public partial class DefaultServiceProviderFactory : Microsoft.Extensions.DependencyInjection.IServiceProviderFactory<Microsoft.Extensions.DependencyInjection.IServiceCollection>
@@ -48,5 +50,6 @@ namespace Microsoft.Extensions.DependencyInjection
         public ServiceProviderOptions() { }
         public bool ValidateOnBuild { get { throw null; } set { } }
         public bool ValidateScopes { get { throw null; } set { } }
+        public Func<IServiceProvider, IServiceProvider> ServiceProviderFactory { get { throw null; } set { } }
     }
 }

@@ -18,6 +18,9 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
 
         private bool _disposed;
 
+        private IServiceProvider? _serviceProvider;
+        private bool _initializing;
+
         public ServiceProviderEngineScope(ServiceProviderEngine engine)
         {
             Engine = engine;
@@ -27,7 +30,10 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
 
         public ServiceProviderEngine Engine { get; }
 
-        public object GetService(Type serviceType)
+        // Lazily initialized as Engine constructs Root scope while it's still initializing.
+        public IServiceProvider ServiceProvider => _serviceProvider ??= InitializeServiceProvider();
+
+        object IServiceProvider.GetService(Type serviceType)
         {
             if (_disposed)
             {
@@ -36,8 +42,6 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
 
             return Engine.GetService(serviceType, this);
         }
-
-        public IServiceProvider ServiceProvider => this;
 
         internal object CaptureDisposable(object service)
         {
@@ -162,6 +166,27 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
             }
 
             return toDispose;
+        }
+
+        private IServiceProvider InitializeServiceProvider()
+        {
+            if (Engine.ServiceProviderFactory is null) return this;
+            // Re-entrant calls from ServiceProviderFactory for IServiceProvider will get `this`;
+            if (_initializing) return this;
+
+            // Stand in lock object to save an allocation.
+            lock (ResolvedServices)
+            {
+                try
+                {
+                    _initializing = true;
+                    return Engine.ServiceProviderFactory.Invoke(this) ?? this;
+                }
+                finally
+                {
+                    _initializing = false;
+                }
+            }
         }
     }
 }

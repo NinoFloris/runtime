@@ -24,6 +24,7 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
         private static readonly MethodInfo ArrayEmptyMethodInfo = typeof(Array).GetMethod(nameof(Array.Empty));
 
         private static readonly ParameterExpression ScopeParameter = Expression.Parameter(typeof(ServiceProviderEngineScope));
+        private static readonly MemberExpression ServiceProvider = Expression.Property(ScopeParameter, nameof(IServiceScope.ServiceProvider));
 
         private static readonly ParameterExpression ResolvedServices = Expression.Variable(typeof(IDictionary<ServiceCacheKey, object>), ScopeParameter.Name + "resolvedServices");
         private static readonly BinaryExpression ResolvedServicesVariableAssignment =
@@ -37,15 +38,13 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
 
         private readonly CallSiteRuntimeResolver _runtimeResolver;
 
-        private readonly IServiceScopeFactory _serviceScopeFactory;
-
         private readonly ServiceProviderEngineScope _rootScope;
 
         private readonly ConcurrentDictionary<ServiceCacheKey, Func<ServiceProviderEngineScope, object>> _scopeResolverCache;
 
         private readonly Func<ServiceCacheKey, ServiceCallSite, Func<ServiceProviderEngineScope, object>> _buildTypeDelegate;
 
-        public ExpressionResolverBuilder(CallSiteRuntimeResolver runtimeResolver, IServiceScopeFactory serviceScopeFactory, ServiceProviderEngineScope rootScope)
+        public ExpressionResolverBuilder(CallSiteRuntimeResolver runtimeResolver, ServiceProviderEngineScope rootScope)
         {
             if (runtimeResolver == null)
             {
@@ -54,7 +53,6 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
 
             _scopeResolverCache = new ConcurrentDictionary<ServiceCacheKey, Func<ServiceProviderEngineScope, object>>();
             _runtimeResolver = runtimeResolver;
-            _serviceScopeFactory = serviceScopeFactory;
             _rootScope = rootScope;
             _buildTypeDelegate = (key, cs) => BuildNoCache(cs);
         }
@@ -117,17 +115,17 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
 
         protected override Expression VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, object context)
         {
-            return ScopeParameter;
+            return ServiceProvider;
         }
 
         protected override Expression VisitServiceScopeFactory(ServiceScopeFactoryCallSite serviceScopeFactoryCallSite, object context)
         {
-            return Expression.Constant(_serviceScopeFactory);
+            return Expression.Constant(_rootScope.Engine.ServiceScopeFactory);
         }
 
         protected override Expression VisitFactory(FactoryCallSite factoryCallSite, object context)
         {
-            return Expression.Invoke(Expression.Constant(factoryCallSite.Factory), ScopeParameter);
+            return Expression.Invoke(Expression.Constant(factoryCallSite.Factory), ServiceProvider);
         }
 
         protected override Expression VisitIEnumerable(IEnumerableCallSite callSite, object context)

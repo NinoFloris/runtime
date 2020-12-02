@@ -9,9 +9,10 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
     internal class ExpressionsServiceProviderEngine : ServiceProviderEngine
     {
         private readonly ExpressionResolverBuilder _expressionResolverBuilder;
-        public ExpressionsServiceProviderEngine(IEnumerable<ServiceDescriptor> serviceDescriptors) : base(serviceDescriptors)
+        public ExpressionsServiceProviderEngine(IEnumerable<ServiceDescriptor> serviceDescriptors, Func<IServiceProvider, IServiceProvider>? serviceProviderFactory = null)
+            : base(serviceDescriptors, serviceProviderFactory)
         {
-            _expressionResolverBuilder = new ExpressionResolverBuilder(RuntimeResolver, this, Root);
+            _expressionResolverBuilder = new ExpressionResolverBuilder(RuntimeResolver, Root);
         }
 
         protected override Func<ServiceProviderEngineScope, object> RealizeService(ServiceCallSite callSite)

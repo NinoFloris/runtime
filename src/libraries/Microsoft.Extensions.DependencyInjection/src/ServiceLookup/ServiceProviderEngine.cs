@@ -16,16 +16,24 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
 
         private bool _disposed;
 
-        protected ServiceProviderEngine(IEnumerable<ServiceDescriptor> serviceDescriptors)
+        private bool _initializing;
+        private IServiceScopeFactory? _serviceScopeFactory;
+        private readonly object _serviceScopeFactoryInitLock = new object();
+
+        protected ServiceProviderEngine(IEnumerable<ServiceDescriptor> serviceDescriptors, Func<IServiceProvider, IServiceProvider>? serviceProviderFactory)
         {
             _createServiceAccessor = CreateServiceAccessor;
+            ServiceProviderFactory = serviceProviderFactory;
             Root = new ServiceProviderEngineScope(this);
             RuntimeResolver = new CallSiteRuntimeResolver();
             CallSiteFactory = new CallSiteFactory(serviceDescriptors);
             CallSiteFactory.Add(typeof(IServiceProvider), new ServiceProviderCallSite());
             CallSiteFactory.Add(typeof(IServiceScopeFactory), new ServiceScopeFactoryCallSite());
             RealizedServices = new ConcurrentDictionary<Type, Func<ServiceProviderEngineScope, object>>();
+            // _serviceScopeFactory = new Lazy<IServiceScopeFactory>(InitializeServiceScopeFactory);
         }
+
+        internal Func<IServiceProvider, IServiceProvider>? ServiceProviderFactory;
 
         internal ConcurrentDictionary<Type, Func<ServiceProviderEngineScope, object>> RealizedServices { get; }
 
@@ -36,6 +44,9 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
         public ServiceProviderEngineScope Root { get; }
 
         public IServiceScope RootScope => Root;
+
+        // Lazily initialized as Engine is inherited and is usually not fully constructed yet.
+        public IServiceScopeFactory ServiceScopeFactory => _serviceScopeFactory ??= InitializeServiceScopeFactory();
 
         void IServiceProviderEngine.InitializeCallback(IServiceProviderEngineCallback callback)
         {
@@ -92,7 +103,7 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
             return realizedService.Invoke(serviceProviderEngineScope);
         }
 
-        public IServiceScope CreateScope()
+        IServiceScope IServiceScopeFactory.CreateScope()
         {
             if (_disposed)
             {
@@ -113,6 +124,26 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
             }
 
             return _ => null;
+        }
+
+        private IServiceScopeFactory InitializeServiceScopeFactory()
+        {
+            if (ServiceProviderFactory is null) return this;
+            // Re-entrant calls from ServiceProviderFactory for IServiceScopeFactory will get `this`;
+            if (_initializing) return this;
+
+            lock (_serviceScopeFactoryInitLock)
+            {
+                try
+                {
+                    _initializing = true;
+                    return ServiceProviderFactory.Invoke(Root)?.GetService(typeof(IServiceScopeFactory)) as IServiceScopeFactory ?? this;
+                }
+                finally
+                {
+                    _initializing = false;
+                }
+            }
         }
     }
 }

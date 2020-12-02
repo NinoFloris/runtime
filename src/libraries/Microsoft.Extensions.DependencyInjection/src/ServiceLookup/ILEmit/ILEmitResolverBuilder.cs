@@ -14,6 +14,9 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
         private static readonly MethodInfo ResolvedServicesGetter = typeof(ServiceProviderEngineScope).GetProperty(
             nameof(ServiceProviderEngineScope.ResolvedServices), BindingFlags.Instance | BindingFlags.NonPublic).GetMethod;
 
+        private static MethodInfo ServiceProviderGetter = typeof(IServiceScope).GetProperty(
+            nameof(IServiceScope.ServiceProvider)).GetMethod;
+
         private static readonly FieldInfo FactoriesField = typeof(ILEmitResolverBuilderRuntimeContext).GetField(nameof(ILEmitResolverBuilderRuntimeContext.Factories));
         private static readonly FieldInfo ConstantsField = typeof(ILEmitResolverBuilderRuntimeContext).GetField(nameof(ILEmitResolverBuilderRuntimeContext.Constants));
         private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle));
@@ -37,15 +40,13 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
 
         private readonly CallSiteRuntimeResolver _runtimeResolver;
 
-        private readonly IServiceScopeFactory _serviceScopeFactory;
-
         private readonly ServiceProviderEngineScope _rootScope;
 
         private readonly ConcurrentDictionary<ServiceCacheKey, GeneratedMethod> _scopeResolverCache;
 
         private readonly Func<ServiceCacheKey, ServiceCallSite, GeneratedMethod> _buildTypeDelegate;
 
-        public ILEmitResolverBuilder(CallSiteRuntimeResolver runtimeResolver, IServiceScopeFactory serviceScopeFactory, ServiceProviderEngineScope rootScope) :
+        public ILEmitResolverBuilder(CallSiteRuntimeResolver runtimeResolver, ServiceProviderEngineScope rootScope) :
             base()
         {
             if (runtimeResolver == null)
@@ -53,7 +54,6 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
                 throw new ArgumentNullException(nameof(runtimeResolver));
             }
             _runtimeResolver = runtimeResolver;
-            _serviceScopeFactory = serviceScopeFactory;
             _rootScope = rootScope;
             _scopeResolverCache = new ConcurrentDictionary<ServiceCacheKey, GeneratedMethod>();
             _buildTypeDelegate = (key, cs) => BuildTypeNoCache(cs);
@@ -193,8 +193,9 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
 
         protected override object VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, ILEmitResolverBuilderContext argument)
         {
-            // [return] ProviderScope
+            // [return] ProviderScope.ServiceProvider
             argument.Generator.Emit(OpCodes.Ldarg_1);
+            argument.Generator.Emit(OpCodes.Callvirt, ServiceProviderGetter);
             return null;
         }
 
@@ -257,6 +258,8 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
             argument.Generator.Emit(OpCodes.Ldelem, typeof(Func<IServiceProvider, object>));
 
             argument.Generator.Emit(OpCodes.Ldarg_1);
+            argument.Generator.Emit(OpCodes.Callvirt, ServiceProviderGetter);
+
             argument.Generator.Emit(OpCodes.Call, ExpressionResolverBuilder.InvokeFactoryMethodInfo);
 
             argument.Factories.Add(factoryCallSite.Factory);
@@ -414,7 +417,7 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
             {
                 Constants = context.Constants?.ToArray(),
                 Factories = context.Factories?.ToArray(),
-                ScopeFactory = _serviceScopeFactory
+                ScopeFactory = _rootScope.Engine.ServiceScopeFactory
             };
         }
 

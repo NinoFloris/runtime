@@ -14,13 +14,13 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
         public ExpressionResolverBuilder ResolverBuilder { get; }
 #endif
 
-        public CompiledServiceProviderEngine(IEnumerable<ServiceDescriptor> serviceDescriptors)
-            : base(serviceDescriptors)
+        public CompiledServiceProviderEngine(IEnumerable<ServiceDescriptor> serviceDescriptors, Func<IServiceProvider, IServiceProvider>? serviceProviderFactory = null)
+            : base(serviceDescriptors, serviceProviderFactory)
         {
 #if IL_EMIT
-            ResolverBuilder = new ILEmitResolverBuilder(RuntimeResolver, this, Root);
+            ResolverBuilder = new ILEmitResolverBuilder(RuntimeResolver, Root);
 #else
-            ResolverBuilder = new ExpressionResolverBuilder(RuntimeResolver, this, Root);
+            ResolverBuilder = new ExpressionResolverBuilder(RuntimeResolver, Root);
 #endif
         }
 

@@ -8,7 +8,8 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
 {
     internal class RuntimeServiceProviderEngine : ServiceProviderEngine
     {
-        public RuntimeServiceProviderEngine(IEnumerable<ServiceDescriptor> serviceDescriptors) : base(serviceDescriptors)
+        public RuntimeServiceProviderEngine(IEnumerable<ServiceDescriptor> serviceDescriptors, Func<IServiceProvider, IServiceProvider>? serviceProviderFactory = null)
+            : base(serviceDescriptors, serviceProviderFactory)
         {
         }
 

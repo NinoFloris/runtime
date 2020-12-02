@@ -117,12 +117,12 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
 
         protected override object VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, RuntimeResolverContext context)
         {
-            return context.Scope;
+            return context.Scope.ServiceProvider;
         }
 
         protected override object VisitServiceScopeFactory(ServiceScopeFactoryCallSite serviceScopeFactoryCallSite, RuntimeResolverContext context)
         {
-            return context.Scope.Engine;
+            return context.Scope.Engine.ServiceScopeFactory;
         }
 
         protected override object VisitIEnumerable(IEnumerableCallSite enumerableCallSite, RuntimeResolverContext context)
@@ -141,7 +141,7 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
 
         protected override object VisitFactory(FactoryCallSite factoryCallSite, RuntimeResolverContext context)
         {
-            return factoryCallSite.Factory(context.Scope);
+            return factoryCallSite.Factory(context.Scope.ServiceProvider);
         }
     }
 

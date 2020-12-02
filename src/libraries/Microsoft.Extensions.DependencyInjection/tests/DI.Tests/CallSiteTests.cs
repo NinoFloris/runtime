@@ -378,7 +378,7 @@ namespace Microsoft.Extensions.DependencyInjection.Tests
 
         private static Func<ServiceProviderEngineScope, object> CompileCallSite(ServiceCallSite callSite, ServiceProviderEngine engine)
         {
-            return new ExpressionResolverBuilder(CallSiteRuntimeResolver, engine, engine.Root).Build(callSite);
+            return new ExpressionResolverBuilder(CallSiteRuntimeResolver, engine.Root).Build(callSite);
         }
     }
 }

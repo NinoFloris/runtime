@@ -9,9 +9,10 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
     internal class ILEmitServiceProviderEngine : ServiceProviderEngine
     {
         private readonly ILEmitResolverBuilder _expressionResolverBuilder;
-        public ILEmitServiceProviderEngine(IEnumerable<ServiceDescriptor> serviceDescriptors) : base(serviceDescriptors)
+        public ILEmitServiceProviderEngine(IEnumerable<ServiceDescriptor> serviceDescriptors, Func<IServiceProvider, IServiceProvider>? serviceProviderFactory = null)
+            : base(serviceDescriptors, serviceProviderFactory)
         {
-            _expressionResolverBuilder = new ILEmitResolverBuilder(RuntimeResolver, this, Root);
+            _expressionResolverBuilder = new ILEmitResolverBuilder(RuntimeResolver, Root);
         }
 
         protected override Func<ServiceProviderEngineScope, object> RealizeService(ServiceCallSite callSite)

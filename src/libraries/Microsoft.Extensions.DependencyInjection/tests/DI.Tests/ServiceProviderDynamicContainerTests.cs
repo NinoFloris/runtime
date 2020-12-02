@@ -8,6 +8,6 @@ namespace Microsoft.Extensions.DependencyInjection.Tests
     public class ServiceProviderDynamicContainerTests : ServiceProviderContainerTests
     {
         protected override IServiceProvider CreateServiceProvider(IServiceCollection collection) =>
-            collection.BuildServiceProvider();
+            collection.BuildServiceProvider(ServiceProviderMode.Dynamic);
     }
 }

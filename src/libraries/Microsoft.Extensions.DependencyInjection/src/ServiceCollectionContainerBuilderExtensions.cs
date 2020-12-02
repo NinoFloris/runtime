@@ -61,16 +61,16 @@ namespace Microsoft.Extensions.DependencyInjection
             IServiceProviderEngine engine;
 
 #if !NETCOREAPP
-            engine = new DynamicServiceProviderEngine(services);
+            engine = new DynamicServiceProviderEngine(services, options?.ServiceProviderFactory);
 #else
             if (RuntimeFeature.IsDynamicCodeCompiled)
             {
-                engine = new DynamicServiceProviderEngine(services);
+                engine = new DynamicServiceProviderEngine(services, options?.ServiceProviderFactory);
             }
             else
             {
                 // Don't try to compile Expressions/IL if they are going to get interpreted
-                engine = new RuntimeServiceProviderEngine(services);
+                engine = new RuntimeServiceProviderEngine(services, options?.ServiceProviderFactory);
             }
 #endif
 

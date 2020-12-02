@@ -23,5 +23,10 @@ namespace Microsoft.Extensions.DependencyInjection
         /// NOTE: this check doesn't verify open generics services.
         /// </summary>
         public bool ValidateOnBuild { get; set; }
+
+        /// <summary>
+        /// Enables any service requests or IServiceProvider arguments to be delegated to the returned IServiceProvider.
+        /// </summary>
+        public Func<IServiceProvider, IServiceProvider>? ServiceProviderFactory { get; set; }
     }
 }
